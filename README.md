@@ -41,11 +41,28 @@ MVPKG install mv-lang/cmd
 `cmd` is pure BASIC — no native code, no dependencies — so it installs on any
 MVX account as-is.
 
+## UniData
+
+The same framework is ported to Rocket **UniData** under [`udt/`](udt/)
+(`CMD.INIT` / `CMD.ADD` / `CMD.RUN`, using `@SENTENCE` for the sentence). To
+install it, copy `udt/CMD.*` into your account's `BP`, then compile and
+catalog them:
+
+```
+BASIC BP CMD.INIT CMD.ADD CMD.RUN
+CATALOG BP CMD.INIT CMD.ADD CMD.RUN
+```
+
+A verb then builds its subcommands exactly as above.
+
 ## Layout
 
-`BP/` — the framework (`CMD.INIT`, `CMD.ADD`, `CMD.RUN`); `PKG` + `mvpkg.json`
-— the package manifest. Records are stored as directory files so the repo is
-itself a legible MVX package account.
+`BP/` — the framework for MVX (`CMD.INIT`, `CMD.ADD`, `CMD.RUN`); `udt/` — the
+UniData port; `PKG` + `mvpkg.json` — the package manifest. The account is an
+**open account** (the same legible, directory-file format `mv_git` uses):
+records are plain files, `%FILE%` carries the portable type, and the runtime
+`mvxdata.lmdb` is a build artifact (git-ignored), so the repo is itself a
+legible, cross-platform MV package account.
 
 ## Licence
 
