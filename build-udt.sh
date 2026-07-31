@@ -16,28 +16,16 @@ set -e
 SRC="$(cd "$(dirname "$0")" && pwd)"
 ACCT="${ACCT:-/tmp/cmdbuild}"
 
-# A UniData account (VOC etc.).  newacct is interactive; drive it with expect,
-# matching on the prompts so the answer order does not matter.  Owner login
-# 'root' and group 'unidata' both exist in the builder image.
-command -v expect >/dev/null 2>&1 || dnf -y install expect >/dev/null 2>&1 \
-  || microdnf -y install expect >/dev/null 2>&1 || true
+# A UniData account (VOC etc.).  In the container there is no controlling
+# terminal, so newacct reads its answers from stdin — feed the owner login
+# ('root') and group ('unidata'), both present in the builder image, plus the
+# continue confirmation.  Its transcript is echoed so a bad prompt order is
+# visible in the CI log.
 rm -rf "$ACCT"; mkdir -p "$ACCT"
-cat > /tmp/mkacct.exp <<EXP
-set timeout 60
-log_user 0
-cd "$ACCT"
-spawn $UDTHOME/bin/newacct
-expect {
-  -re {(?i)login name}          { send "root\r";    exp_continue }
-  -re {(?i)group name}          { send "unidata\r"; exp_continue }
-  -re {(?i)another .*name.*y/n} { send "n\r";       exp_continue }
-  -re {(?i)continue.*y/n}       { send "y\r";        exp_continue }
-  -re {\(y/n\)}                 { send "y\r";        exp_continue }
-  timeout {} eof {}
-}
-EXP
-expect -f /tmp/mkacct.exp
-[ -d "$ACCT/VOC" ] || { echo "build-udt: newacct did not create a VOC" >&2; exit 1; }
+echo "build-udt: creating a UniData account with newacct"
+( cd "$ACCT" && printf 'y\nroot\nunidata\ny\ny\n' | "$UDTHOME/bin/newacct" 2>&1 ) \
+  | sed 's/^/  newacct| /' || true
+[ -d "$ACCT/VOC" ] || { echo "build-udt: newacct did not create a VOC (see transcript above)" >&2; exit 1; }
 
 # Compile the three programs -> BP/_CMD.* objects.
 cp "$SRC/BP/CMD.INIT" "$SRC/BP/CMD.ADD" "$SRC/BP/CMD.RUN" "$ACCT/BP/"
