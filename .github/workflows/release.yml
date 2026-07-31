@@ -1,15 +1,16 @@
-# Release cmd on a version tag: publish the source package and a prebuilt mvx
-# binary package as GitHub release assets.  The package registry indexes the
-# assets via its release webhook (it hosts nothing).  Each job publishes to the
-# same release; asset names mirror the registry's artifact key
+# Release cmd on a version tag: publish the source package and prebuilt binary
+# packages (mvx + UniData) as GitHub release assets.  The package registry
+# indexes the assets via its release webhook (it hosts nothing).  Each job
+# publishes to the same release; asset names mirror the registry's artifact key
 # (<name>-<ver>-<suffix>, base = package name '/'->'_') so the webhook maps them:
-#   source                          -> mv-lang_cmd-<ver>-source.tar.gz
-#   mvx binary (linux/x86_64, le)   -> mv-lang_cmd-<ver>-mvx-linux-x86_64-le.tar.gz
+#   source                        -> mv-lang_cmd-<ver>-source.tar.gz
+#   mvx binary  (linux/x86_64,le) -> mv-lang_cmd-<ver>-mvx-linux-x86_64-le.tar.gz
+#   udt binary  (linux/x86_64,le) -> mv-lang_cmd-<ver>-udt-linux-x86_64-le.tar.gz
 #
-# cmd is pure BASIC.  The source package is the BP/ programs; the mvx binary is
-# the compiled subroutine library (LIB/libcmd.so) an account links with no
-# recompile.  (A UniData binary is the next artifact; it builds on the
-# self-hosted udt runner and is added once its compile is validated there.)
+# cmd is pure BASIC.  The source package is the BP/ programs (compiled on
+# install); the mvx binary is the compiled subroutine library (LIB/libcmd.so)
+# an account links with no recompile; the udt binary is the prebuilt UniData
+# objects (BP/_CMD.*) that MVPKG-udt catalogs with no compiler.
 # Copyright (C) 2026 Gordon Heydon.  GPL-2.0-only.
 #
 # Tag the bare version to release, e.g.:  git tag 0.2 && git push origin 0.2
@@ -105,6 +106,55 @@ jobs:
           echo "checksum=$BASE.tar.gz.sha256" >> "$GITHUB_OUTPUT"
 
       - name: Publish the mvx binary asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            ${{ steps.pkg.outputs.tarball }}
+            ${{ steps.pkg.outputs.checksum }}
+          fail_on_unmatched_files: true
+
+  # ---- udt binary: prebuilt UniData objects, built in the udt-builder --------
+  # Runs on the self-hosted udt runner; compiles BP/CMD.* to _objects in the
+  # udt-builder container and ships them as an objects-only package (MVPKG-udt
+  # catalogs the objects with no compiler).  Independent of the jobs above — if
+  # the runner is offline this job is skipped/failed without affecting the
+  # source and mvx assets, which the registry already indexes on their own.
+  udt-binary:
+    runs-on: [self-hosted, linux, udt]
+    steps:
+      - name: Check out cmd
+        uses: actions/checkout@v4
+
+      - name: Build the UniData binary package in the udt-builder container
+        id: pkg
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE="${UDT_BUILDER_IMAGE:-udt-builder:8.3.2}"
+          if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+            echo "::error::udt-builder image '$IMAGE' not on this runner (see mv-package-registry/builder/README.md)." >&2
+            exit 1
+          fi
+          VER="${GITHUB_REF_NAME}"
+          ARCH="$(uname -m)"; OS="linux"
+          case "$(printf '\1\2' | od -An -tx2 | tr -d ' \n')" in
+            0201*) ENDIAN=le ;; 0102*) ENDIAN=be ;; *) ENDIAN=le ;;
+          esac
+          BASE="mv-lang_cmd-$VER-udt-$OS-$ARCH-$ENDIAN"
+
+          # Compile + assemble inside the container (runs udt locally); chown the
+          # tar back to the runner user (the container runs as root).
+          docker run --rm --hostname unidata --shm-size=256m \
+            -e BASE="$BASE" -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
+            -v "$PWD":/src -w /src "$IMAGE" bash -lc \
+            'sh build-udt.sh && chown "$HOST_UID:$HOST_GID" "$BASE.tar.gz"'
+          test -f "$BASE.tar.gz"
+          sha256sum "$BASE.tar.gz" > "$BASE.tar.gz.sha256"
+          echo "tarball=$BASE.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "checksum=$BASE.tar.gz.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the udt binary asset
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
