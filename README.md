@@ -12,9 +12,9 @@ CALL CMD.ADD("LOG",    "recent history",      "GIT.LOG")
 CALL CMD.RUN
 ```
 
-`CMD.RUN` parses `SENTENCE()`, dispatches to the handler subroutine (via the
-indirect `CALL @VAR`), and generates help for the `help`, no-argument, and
-unknown-command cases.
+`CMD.RUN` parses the current sentence, dispatches to the handler subroutine
+(via the indirect `CALL @VAR`), and generates help for the `help`,
+no-argument, and unknown-command cases.
 
 ## API
 
@@ -43,10 +43,13 @@ MVX account as-is.
 
 ## UniData
 
-The same framework is ported to Rocket **UniData** under [`udt/`](udt/)
-(`CMD.INIT` / `CMD.ADD` / `CMD.RUN`, using `@SENTENCE` for the sentence). To
-install it, copy `udt/CMD.*` into your account's `BP`, then compile and
-catalog them:
+The same source runs on Rocket **UniData** — there is one copy of each
+program, not a separate port. The two host differences (the current sentence,
+`SENTENCE()` vs `@SENTENCE`, and the `FMT` justification mask, `L#12` vs
+`12L`) are selected at compile time with `$IFDEF MVX`: the MVX compiler
+defines the `MVX` preprocessor symbol and UniData does not, so each host
+compiles its own form from the same file. To install on UniData, copy
+`BP/CMD.*` into your account's `BP`, then compile and catalog them:
 
 ```
 BASIC BP CMD.INIT CMD.ADD CMD.RUN
@@ -57,9 +60,9 @@ A verb then builds its subcommands exactly as above.
 
 ## Layout
 
-`BP/` — the framework for MVX (`CMD.INIT`, `CMD.ADD`, `CMD.RUN`); `udt/` — the
-UniData port; `PKG` + `mvpkg.json` — the package manifest. The account is an
-**open account** (the same legible, directory-file format `mv_git` uses):
+`BP/` — the framework (`CMD.INIT`, `CMD.ADD`, `CMD.RUN`), one cross-platform
+source per program; `PKG` + `mvpkg.json` — the package manifest. The account
+is an **open account** (the same legible, directory-file format `mv_git` uses):
 records are plain files, `%FILE%` carries the portable type, and the runtime
 `mvxdata.lmdb` is a build artifact (git-ignored), so the repo is itself a
 legible, cross-platform MV package account.
