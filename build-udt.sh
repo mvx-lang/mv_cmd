@@ -25,7 +25,7 @@ rm -rf "$ACCT"; mkdir -p "$ACCT"
 echo "build-udt: creating a UniData account with newacct"
 ( cd "$ACCT" && printf 'y\nroot\nunidata\ny\ny\n' | "$UDTHOME/bin/newacct" 2>&1 ) \
   | sed 's/^/  newacct| /' || true
-[ -d "$ACCT/VOC" ] || { echo "build-udt: newacct did not create a VOC (see transcript above)" >&2; exit 1; }
+[ -e "$ACCT/VOC" ] || { echo "build-udt: newacct did not create a VOC (see transcript above)" >&2; exit 1; }
 
 # Compile the three programs -> BP/_CMD.* objects.
 cp "$SRC/BP/CMD.INIT" "$SRC/BP/CMD.ADD" "$SRC/BP/CMD.RUN" "$ACCT/BP/"
