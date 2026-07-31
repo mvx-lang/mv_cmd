@@ -1,0 +1,45 @@
+# Release cmd on a version tag: package the source and publish it as a GitHub
+# release asset.  cmd is pure BASIC (no native build), so this just tars the
+# package; the registry indexes the asset (it hosts nothing).
+# Copyright (C) 2026 Gordon Heydon.  GPL-2.0-only.
+#
+# Tag the bare version to release, e.g.:  git tag 0.1 && git push origin 0.1
+name: release
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package the source
+        id: pkg
+        shell: bash
+        run: |
+          set -euo pipefail
+          VER="${GITHUB_REF_NAME}"
+          BASE="mv-lang_cmd-$VER-source"       # base = package name '/'->'_'; suffix 'source'
+          tar czf "/tmp/$BASE.tar.gz" --exclude='./.git' --exclude='./.github' .
+          mv "/tmp/$BASE.tar.gz" .
+          sha256sum "$BASE.tar.gz" > "$BASE.tar.gz.sha256"
+          echo "tarball=$BASE.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "checksum=$BASE.tar.gz.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: cmd ${{ github.ref_name }}
+          body: "The cmd command framework (CMD.INIT / CMD.ADD / CMD.RUN), source. Indexed by the package registry."
+          files: |
+            ${{ steps.pkg.outputs.tarball }}
+            ${{ steps.pkg.outputs.checksum }}
+          fail_on_unmatched_files: true
