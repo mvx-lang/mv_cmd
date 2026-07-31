@@ -38,25 +38,31 @@ client (`MVPKG`) also builds its CLI on `cmd`.
 MVPKG install mv-lang/cmd
 ```
 
-`cmd` is pure BASIC — no native code, no dependencies — so it installs on any
-MVX account as-is.
+`cmd` is pure BASIC with no dependencies, and runs on both **MVX** and Rocket
+**UniData** from one source (see below). `MVPKG install` works on either host —
+it fetches the prebuilt binary for your system where one is published (the MVX
+subroutine library, or the UniData objects, cataloged with no compiler), and
+otherwise installs the source and compiles it on install.
 
 ## UniData
 
-The same source runs on Rocket **UniData** — there is one copy of each
-program, not a separate port. The two host differences (the current sentence,
-`SENTENCE()` vs `@SENTENCE`, and the `FMT` justification mask, `L#12` vs
-`12L`) are selected at compile time with `$IFDEF MVX`: the MVX compiler
-defines the `MVX` preprocessor symbol and UniData does not, so each host
-compiles its own form from the same file. To install on UniData, copy
-`BP/CMD.*` into your account's `BP`, then compile and catalog them:
+The same source runs on UniData — there is one copy of each program, not a
+separate port. The two host differences — the current sentence (`SENTENCE()`
+vs `@SENTENCE`) and the `FMT` justification mask (`L#12` vs `12L`) — are
+selected at compile time with `$IFDEF MVX`: the MVX compiler defines the `MVX`
+symbol and UniData does not, so each host compiles its own form. (The `$IFDEF`
+branches whole statements rather than defining macros — UniData's `$DEFINE`
+does not substitute values the way MVX's does.)
+
+`MVPKG install mv-lang/cmd` installs it on UniData too. Without the package
+client, install by hand — copy `BP/CMD.*` into your account's `BP`, then:
 
 ```
 BASIC BP CMD.INIT CMD.ADD CMD.RUN
 CATALOG BP CMD.INIT CMD.ADD CMD.RUN
 ```
 
-A verb then builds its subcommands exactly as above.
+A verb then builds its subcommands exactly as shown at the top.
 
 ## Layout
 
