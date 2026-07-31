@@ -1,9 +1,18 @@
-# Release cmd on a version tag: package the source and publish it as a GitHub
-# release asset.  cmd is pure BASIC (no native build), so this just tars the
-# package; the registry indexes the asset (it hosts nothing).
+# Release cmd on a version tag: publish the source package and a prebuilt mvx
+# binary package as GitHub release assets.  The package registry indexes the
+# assets via its release webhook (it hosts nothing).  Each job publishes to the
+# same release; asset names mirror the registry's artifact key
+# (<name>-<ver>-<suffix>, base = package name '/'->'_') so the webhook maps them:
+#   source                          -> mv-lang_cmd-<ver>-source.tar.gz
+#   mvx binary (linux/x86_64, le)   -> mv-lang_cmd-<ver>-mvx-linux-x86_64-le.tar.gz
+#
+# cmd is pure BASIC.  The source package is the BP/ programs; the mvx binary is
+# the compiled subroutine library (LIB/libcmd.so) an account links with no
+# recompile.  (A UniData binary is the next artifact; it builds on the
+# self-hosted udt runner and is added once its compile is validated there.)
 # Copyright (C) 2026 Gordon Heydon.  GPL-2.0-only.
 #
-# Tag the bare version to release, e.g.:  git tag 0.1 && git push origin 0.1
+# Tag the bare version to release, e.g.:  git tag 0.2 && git push origin 0.2
 name: release
 
 on:
@@ -15,7 +24,8 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  # ---- source package: the BP/ programs, portable across MVX and UniData ----
+  source:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,19 +36,78 @@ jobs:
         run: |
           set -euo pipefail
           VER="${GITHUB_REF_NAME}"
-          BASE="mv-lang_cmd-$VER-source"       # base = package name '/'->'_'; suffix 'source'
+          BASE="mv-lang_cmd-$VER-source"          # base = name '/'->'_'; suffix 'source'
           tar czf "/tmp/$BASE.tar.gz" --exclude='./.git' --exclude='./.github' .
           mv "/tmp/$BASE.tar.gz" .
           sha256sum "$BASE.tar.gz" > "$BASE.tar.gz.sha256"
           echo "tarball=$BASE.tar.gz" >> "$GITHUB_OUTPUT"
           echo "checksum=$BASE.tar.gz.sha256" >> "$GITHUB_OUTPUT"
 
-      - name: Publish the GitHub release
+      - name: Publish the source asset
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: cmd ${{ github.ref_name }}
-          body: "The cmd command framework (CMD.INIT / CMD.ADD / CMD.RUN), source. Indexed by the package registry."
+          body: "The cmd command framework (CMD.INIT / CMD.ADD / CMD.RUN). Source + prebuilt mvx binary; indexed by the package registry."
+          files: |
+            ${{ steps.pkg.outputs.tarball }}
+            ${{ steps.pkg.outputs.checksum }}
+          fail_on_unmatched_files: true
+
+  # ---- mvx binary: compile the subroutine library against a published mvx ----
+  mvx-binary:
+    # The setup-mvx tarball is built on ubuntu-latest; run on a matching glibc.
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out cmd
+        uses: actions/checkout@v4
+
+      - name: Check out the mvx package tooling (scripts/mkpkg.sh)
+        uses: actions/checkout@v4
+        with:
+          repository: mvx-lang/mvx
+          path: .mvx-src
+          sparse-checkout: scripts
+          sparse-checkout-cone-mode: false
+
+      - name: Set up the mvx toolchain (latest published build)
+        uses: mvx-lang/mvx/.github/actions/setup-mvx@main
+        with:
+          version: latest
+
+      - name: Build the mvx binary package
+        id: pkg
+        shell: bash
+        run: |
+          set -euo pipefail
+          VER="${GITHUB_REF_NAME}"
+          ARCH="$(uname -m)"                        # ubuntu-24.04 -> x86_64
+          OS="$(uname -s | tr 'A-Z' 'a-z')"; case "$OS" in *linux*) OS=linux ;; esac
+          case "$(printf '\1\2' | od -An -tx2 | tr -d ' \n')" in
+            0201*) ENDIAN=le ;; 0102*) ENDIAN=be ;; *) ENDIAN=le ;;
+          esac
+          BASE="mv-lang_cmd-$VER-mvx-$OS-$ARCH-$ENDIAN"
+
+          # Compile BP/ into LIB/libcmd.so against the installed mvx-basic.
+          MVXBASIC="$(command -v mvx-basic)" sh .mvx-src/scripts/mkpkg.sh .
+          test -f LIB/libcmd.so
+
+          # Assemble a binary-only package: the prebuilt LIB the runtime links,
+          # plus the manifest/verb records — no BP source (installs identically
+          # to a source package via LINK-PKG, with nothing to recompile).
+          mkdir -p "dist/$BASE"
+          cp -a LIB PKG mvpkg.json LICENSE README.md "dist/$BASE/"
+          for d in VOC VOC.DICT LIB.DICT; do [ -e "$d" ] && cp -a "$d" "dist/$BASE/" || true; done
+          rm -rf "dist/$BASE"/LIB/*.dSYM "dist/$BASE"/LIB/*.debug   # ship the library, not debug bundles
+          tar czf "$BASE.tar.gz" -C dist "$BASE"
+          sha256sum "$BASE.tar.gz" > "$BASE.tar.gz.sha256"
+          echo "tarball=$BASE.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "checksum=$BASE.tar.gz.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the mvx binary asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
           files: |
             ${{ steps.pkg.outputs.tarball }}
             ${{ steps.pkg.outputs.checksum }}
