@@ -1,18 +1,19 @@
 #!/bin/sh
-# mv_cmd — build the UniData binary package (prebuilt BASIC objects).
+# mv_cmd — build the UniData binary package (prebuilt BASIC objects) and stage it.
 # Copyright (C) 2026 Gordon Heydon.  GPL-2.0-only (see LICENSE).
 #
-# Runs INSIDE the udt-builder container (see mv-package-registry/builder): make
-# a scratch UniData account, compile BP/CMD.* to objects, and assemble an
-# objects-only package — the prebuilt _objects plus the manifest, no source.
-# MVPKG-udt installs it by cataloging the objects with no BASIC/compiler
-# (LISTSRC/DOCAT detect the _objects).  Validated on UniData 8.3.2.
+# Runs INSIDE the udt-builder container (driven by the udt-build action's
+# build-release.sh / udt-run): make a scratch UniData account, compile BP/CMD.*
+# to objects, and stage an objects-only package — the prebuilt _objects plus the
+# manifest, no source — into the directory given as $1.  MVPKG-udt installs it by
+# cataloging the objects with no BASIC/compiler (LISTSRC/DOCAT detect the
+# _objects).  Validated on UniData 8.3.2.  The action tars $1 as
+# mvx-lang_cmd-<ver>-udt-<os>-<arch>-<endian>.tar.gz and chowns it back.
 #
-#   BASE=mvx-lang_cmd-<ver>-udt-linux-<arch>-<endian>  sh build-udt.sh
-# writes ./$BASE.tar.gz.
+#   sh build-udt.sh <stagedir>
 set -e
+STAGE="${1:?usage: build-udt.sh <stagedir>}"
 : "${UDTHOME:?UDTHOME must be set (run inside the udt-builder container)}"
-: "${BASE:?set BASE to the asset base name}"
 SRC="$(cd "$(dirname "$0")" && pwd)"
 ACCT="${ACCT:-/tmp/cmdbuild}"
 
@@ -34,14 +35,9 @@ for o in _CMD.INIT _CMD.ADD _CMD.RUN; do
   [ -f "$ACCT/BP/$o" ] || { echo "build-udt: object $o missing (compile failed)" >&2; exit 1; }
 done
 
-# Objects-only package: prebuilt _objects + manifest, no source records.
-# Stage under the account (a container-temp), NOT the mounted source tree — the
-# container runs as root, and a root-owned dist/ left in the workspace would
-# block the runner's next checkout (only the tarball is chowned back).
-DIST="$ACCT/dist/$BASE"; rm -rf "$DIST"; mkdir -p "$DIST/BP"
-cp "$ACCT/BP/_CMD.INIT" "$ACCT/BP/_CMD.ADD" "$ACCT/BP/_CMD.RUN" "$DIST/BP/"
-cp "$SRC/PKG" "$SRC/mvpkg.json" "$SRC/LICENSE" "$SRC/README.md" "$DIST/"
-# Contents at the tar root (no wrapping dir): MVPKG untars into the package dir
-# and expects BP/ etc. at its root, matching the source package convention.
-tar czf "$SRC/$BASE.tar.gz" -C "$DIST" .
-echo "build-udt: wrote $BASE.tar.gz"
+# Stage the objects-only package (contents at the root): prebuilt _objects +
+# manifest, no source records.
+mkdir -p "$STAGE/BP"
+cp "$ACCT/BP/_CMD.INIT" "$ACCT/BP/_CMD.ADD" "$ACCT/BP/_CMD.RUN" "$STAGE/BP/"
+cp "$SRC/PKG" "$SRC/mvpkg.json" "$SRC/LICENSE" "$SRC/README.md" "$STAGE/"
+echo "build-udt: staged the objects-only package"
