@@ -35,7 +35,10 @@ for o in _CMD.INIT _CMD.ADD _CMD.RUN; do
 done
 
 # Objects-only package: prebuilt _objects + manifest, no source records.
-DIST="$SRC/dist/$BASE"; rm -rf "$DIST"; mkdir -p "$DIST/BP"
+# Stage under the account (a container-temp), NOT the mounted source tree — the
+# container runs as root, and a root-owned dist/ left in the workspace would
+# block the runner's next checkout (only the tarball is chowned back).
+DIST="$ACCT/dist/$BASE"; rm -rf "$DIST"; mkdir -p "$DIST/BP"
 cp "$ACCT/BP/_CMD.INIT" "$ACCT/BP/_CMD.ADD" "$ACCT/BP/_CMD.RUN" "$DIST/BP/"
 cp "$SRC/PKG" "$SRC/mvpkg.json" "$SRC/LICENSE" "$SRC/README.md" "$DIST/"
 # Contents at the tar root (no wrapping dir): MVPKG untars into the package dir
