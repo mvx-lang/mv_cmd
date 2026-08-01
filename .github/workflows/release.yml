@@ -3,9 +3,9 @@
 # indexes the assets via its release webhook (it hosts nothing).  Each job
 # publishes to the same release; asset names mirror the registry's artifact key
 # (<name>-<ver>-<suffix>, base = package name '/'->'_') so the webhook maps them:
-#   source                        -> mv-lang_cmd-<ver>-source.tar.gz
-#   mvx binary  (linux/x86_64,le) -> mv-lang_cmd-<ver>-mvx-linux-x86_64-le.tar.gz
-#   udt binary  (linux/x86_64,le) -> mv-lang_cmd-<ver>-udt-linux-x86_64-le.tar.gz
+#   source                        -> mvx-lang_cmd-<ver>-source.tar.gz
+#   mvx binary  (linux/x86_64,le) -> mvx-lang_cmd-<ver>-mvx-linux-x86_64-le.tar.gz
+#   udt binary  (linux/x86_64,le) -> mvx-lang_cmd-<ver>-udt-linux-x86_64-le.tar.gz
 #
 # cmd is pure BASIC.  The source package is the BP/ programs (compiled on
 # install); the mvx binary is the compiled subroutine library (LIB/libcmd.so)
@@ -37,7 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           VER="${GITHUB_REF_NAME}"
-          BASE="mv-lang_cmd-$VER-source"          # base = name '/'->'_'; suffix 'source'
+          BASE="mvx-lang_cmd-$VER-source"          # base = name '/'->'_'; suffix 'source'
           tar czf "/tmp/$BASE.tar.gz" --exclude='./.git' --exclude='./.github' .
           mv "/tmp/$BASE.tar.gz" .
           sha256sum "$BASE.tar.gz" > "$BASE.tar.gz.sha256"
@@ -87,7 +87,7 @@ jobs:
           case "$(printf '\1\2' | od -An -tx2 | tr -d ' \n')" in
             0201*) ENDIAN=le ;; 0102*) ENDIAN=be ;; *) ENDIAN=le ;;
           esac
-          BASE="mv-lang_cmd-$VER-mvx-$OS-$ARCH-$ENDIAN"
+          BASE="mvx-lang_cmd-$VER-mvx-$OS-$ARCH-$ENDIAN"
 
           # Compile BP/ into LIB/libcmd.so against the installed mvx-basic.
           MVXBASIC="$(command -v mvx-basic)" sh .mvx-src/scripts/mkpkg.sh .
@@ -141,7 +141,7 @@ jobs:
           case "$(printf '\1\2' | od -An -tx2 | tr -d ' \n')" in
             0201*) ENDIAN=le ;; 0102*) ENDIAN=be ;; *) ENDIAN=le ;;
           esac
-          BASE="mv-lang_cmd-$VER-udt-$OS-$ARCH-$ENDIAN"
+          BASE="mvx-lang_cmd-$VER-udt-$OS-$ARCH-$ENDIAN"
 
           # Compile + assemble inside the container (runs udt locally); chown the
           # tar back to the runner user (the container runs as root).

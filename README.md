@@ -35,7 +35,7 @@ client (`MVPKG`) also builds its CLI on `cmd`.
 ## Install
 
 ```sh
-MVPKG install mv-lang/cmd
+MVPKG install mvx-lang/cmd
 ```
 
 `cmd` is pure BASIC with no dependencies, and runs on both **MVX** and Rocket
@@ -54,7 +54,7 @@ symbol and UniData does not, so each host compiles its own form. (The `$IFDEF`
 branches whole statements rather than defining macros — UniData's `$DEFINE`
 does not substitute values the way MVX's does.)
 
-`MVPKG install mv-lang/cmd` installs it on UniData too. Without the package
+`MVPKG install mvx-lang/cmd` installs it on UniData too. Without the package
 client, install by hand — copy `BP/CMD.*` into your account's `BP`, then:
 
 ```

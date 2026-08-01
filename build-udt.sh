@@ -8,7 +8,7 @@
 # MVPKG-udt installs it by cataloging the objects with no BASIC/compiler
 # (LISTSRC/DOCAT detect the _objects).  Validated on UniData 8.3.2.
 #
-#   BASE=mv-lang_cmd-<ver>-udt-linux-<arch>-<endian>  sh build-udt.sh
+#   BASE=mvx-lang_cmd-<ver>-udt-linux-<arch>-<endian>  sh build-udt.sh
 # writes ./$BASE.tar.gz.
 set -e
 : "${UDTHOME:?UDTHOME must be set (run inside the udt-builder container)}"
