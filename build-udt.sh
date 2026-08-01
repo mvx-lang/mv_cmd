@@ -38,5 +38,7 @@ done
 DIST="$SRC/dist/$BASE"; rm -rf "$DIST"; mkdir -p "$DIST/BP"
 cp "$ACCT/BP/_CMD.INIT" "$ACCT/BP/_CMD.ADD" "$ACCT/BP/_CMD.RUN" "$DIST/BP/"
 cp "$SRC/PKG" "$SRC/mvpkg.json" "$SRC/LICENSE" "$SRC/README.md" "$DIST/"
-tar czf "$SRC/$BASE.tar.gz" -C "$SRC/dist" "$BASE"
+# Contents at the tar root (no wrapping dir): MVPKG untars into the package dir
+# and expects BP/ etc. at its root, matching the source package convention.
+tar czf "$SRC/$BASE.tar.gz" -C "$DIST" .
 echo "build-udt: wrote $BASE.tar.gz"

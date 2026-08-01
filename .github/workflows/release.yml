@@ -100,7 +100,7 @@ jobs:
           cp -a LIB PKG mvpkg.json LICENSE README.md "dist/$BASE/"
           for d in VOC VOC.DICT LIB.DICT; do [ -e "$d" ] && cp -a "$d" "dist/$BASE/" || true; done
           rm -rf "dist/$BASE"/LIB/*.dSYM "dist/$BASE"/LIB/*.debug   # ship the library, not debug bundles
-          tar czf "$BASE.tar.gz" -C dist "$BASE"
+          tar czf "$BASE.tar.gz" -C "dist/$BASE" .   # contents at the tar root (no wrapping dir)
           sha256sum "$BASE.tar.gz" > "$BASE.tar.gz.sha256"
           echo "tarball=$BASE.tar.gz" >> "$GITHUB_OUTPUT"
           echo "checksum=$BASE.tar.gz.sha256" >> "$GITHUB_OUTPUT"
