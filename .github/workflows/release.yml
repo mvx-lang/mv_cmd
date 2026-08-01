@@ -29,7 +29,7 @@ jobs:
   source:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Package the source
         id: pkg
@@ -45,7 +45,7 @@ jobs:
           echo "checksum=$BASE.tar.gz.sha256" >> "$GITHUB_OUTPUT"
 
       - name: Publish the source asset
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: cmd ${{ github.ref_name }}
@@ -61,10 +61,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out cmd
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check out the mvx package tooling (scripts/mkpkg.sh)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: mvx-lang/mvx
           path: .mvx-src
@@ -106,7 +106,7 @@ jobs:
           echo "checksum=$BASE.tar.gz.sha256" >> "$GITHUB_OUTPUT"
 
       - name: Publish the mvx binary asset
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           files: |
@@ -124,7 +124,7 @@ jobs:
     runs-on: [self-hosted, linux, udt]
     steps:
       - name: Check out cmd
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build the UniData binary package in the udt-builder container
         id: pkg
@@ -155,7 +155,7 @@ jobs:
           echo "checksum=$BASE.tar.gz.sha256" >> "$GITHUB_OUTPUT"
 
       - name: Publish the udt binary asset
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           files: |
