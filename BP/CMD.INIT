@@ -1,4 +1,4 @@
-* mv_cmd — a command framework for MultiValue BASIC.
+* MVX — a native compiler and runtime for Pick/MultiValue BASIC.
 * Copyright (C) 2026 Gordon Heydon.
 *
 * This program is free software; you can redistribute it and/or modify
@@ -13,10 +13,11 @@
 *  */
 * CMD.INIT(name, description) — begin defining a command.
 SUBROUTINE CMD.INIT(NAME, DESC)
-   COMMON /CMDPKG/ CNAME, CDESC, CSUBS, CDESCS, CHANDLERS
-   CNAME = NAME
-   CDESC = DESC
-   CSUBS = ""
-   CDESCS = ""
-   CHANDLERS = ""
+COMMON /CMDPKG/ CNAME, CDESC, CSUBS, CDESCS, CHANDLERS, CFLAGS
+CNAME = NAME
+CDESC = DESC
+CSUBS = ""
+CDESCS = ""
+CHANDLERS = ""
+CFLAGS = ""
 RETURN

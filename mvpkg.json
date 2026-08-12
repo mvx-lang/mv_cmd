@@ -1,8 +1,9 @@
 {
   "name": "mvx-lang/cmd",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "description": "command framework (CMD.INIT / CMD.ADD / CMD.RUN)",
   "license": "GPL-2.0-only",
   "systems": ["mvx", "udt"],
-  "dependencies": []
+  "dependencies": ["mvx-lang/getopt"],
+  "provides": ["cmd"]
 }
