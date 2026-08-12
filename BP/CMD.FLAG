@@ -8,13 +8,14 @@
 *
 * SPDX-License-Identifier: GPL-2.0-only
 * /**
-*  * @file CMD.ADD
+*  * @file CMD.FLAG
 *  * @version 1.0
 *  */
-* CMD.ADD(subcommand, description, handler-subroutine)
-SUBROUTINE CMD.ADD(SUB, DESC, HANDLER)
+* CMD.FLAG(subcommand, short, long, takes-value, default, help) — declare one
+* option on a subcommand.  CMD.RUN parses the sentence against the declared flags
+* (via the getopt package) before dispatching, and the handler reads them back
+* with GETOPT.VAL / GETOPT.HAS / GETOPT.ARG.  takes-value 0 is a boolean flag.
+SUBROUTINE CMD.FLAG(SUB, SHORT, LONG, TAKESVAL, DFLT, HELP)
 COMMON /CMDPKG/ CNAME, CDESC, CSUBS, CDESCS, CHANDLERS, CFLAGS
-CSUBS<-1> = OCONV(SUB, "MCU")
-CDESCS<-1> = DESC
-CHANDLERS<-1> = HANDLER
+CFLAGS<-1> = OCONV(SUB, "MCU") : @VM : SHORT : @VM : LONG : @VM : TAKESVAL : @VM : DFLT : @VM : HELP
 RETURN
