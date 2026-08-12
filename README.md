@@ -12,9 +12,9 @@ CALL CMD.ADD("LOG",    "recent history",      "GIT.LOG")
 CALL CMD.RUN
 ```
 
-`CMD.RUN` parses `SENTENCE()`, dispatches to the handler subroutine (via the
-indirect `CALL @VAR`), and generates help for the `help`, no-argument, and
-unknown-command cases.
+`CMD.RUN` parses the current sentence, dispatches to the handler subroutine
+(via the indirect `CALL @VAR`), and generates help for the `help`,
+no-argument, and unknown-command cases.
 
 ## API
 
@@ -35,31 +35,40 @@ client (`MVPKG`) also builds its CLI on `cmd`.
 ## Install
 
 ```sh
-MVPKG install mv-lang/cmd
+MVPKG install mvx-lang/cmd
 ```
 
-`cmd` is pure BASIC — no native code, no dependencies — so it installs on any
-MVX account as-is.
+`cmd` is pure BASIC with no dependencies, and runs on both **MVX** and Rocket
+**UniData** from one source (see below). `MVPKG install` works on either host —
+it fetches the prebuilt binary for your system where one is published (the MVX
+subroutine library, or the UniData objects, cataloged with no compiler), and
+otherwise installs the source and compiles it on install.
 
 ## UniData
 
-The same framework is ported to Rocket **UniData** under [`udt/`](udt/)
-(`CMD.INIT` / `CMD.ADD` / `CMD.RUN`, using `@SENTENCE` for the sentence). To
-install it, copy `udt/CMD.*` into your account's `BP`, then compile and
-catalog them:
+The same source runs on UniData — there is one copy of each program, not a
+separate port. The two host differences — the current sentence (`SENTENCE()`
+vs `@SENTENCE`) and the `FMT` justification mask (`L#12` vs `12L`) — are
+selected at compile time with `$IFDEF MVX`: the MVX compiler defines the `MVX`
+symbol and UniData does not, so each host compiles its own form. (The `$IFDEF`
+branches whole statements rather than defining macros — UniData's `$DEFINE`
+does not substitute values the way MVX's does.)
+
+`MVPKG install mvx-lang/cmd` installs it on UniData too. Without the package
+client, install by hand — copy `BP/CMD.*` into your account's `BP`, then:
 
 ```
 BASIC BP CMD.INIT CMD.ADD CMD.RUN
 CATALOG BP CMD.INIT CMD.ADD CMD.RUN
 ```
 
-A verb then builds its subcommands exactly as above.
+A verb then builds its subcommands exactly as shown at the top.
 
 ## Layout
 
-`BP/` — the framework for MVX (`CMD.INIT`, `CMD.ADD`, `CMD.RUN`); `udt/` — the
-UniData port; `PKG` + `mvpkg.json` — the package manifest. The account is an
-**open account** (the same legible, directory-file format `mv_git` uses):
+`BP/` — the framework (`CMD.INIT`, `CMD.ADD`, `CMD.RUN`), one cross-platform
+source per program; `PKG` + `mvpkg.json` — the package manifest. The account
+is an **open account** (the same legible, directory-file format `mv_git` uses):
 records are plain files, `%FILE%` carries the portable type, and the runtime
 `mvxdata.lmdb` is a build artifact (git-ignored), so the repo is itself a
 legible, cross-platform MV package account.
