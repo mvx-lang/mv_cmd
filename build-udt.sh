@@ -28,16 +28,22 @@ echo "build-udt: creating a UniData account with newacct"
   | sed 's/^/  newacct| /' || true
 [ -e "$ACCT/VOC" ] || { echo "build-udt: newacct did not create a VOC (see transcript above)" >&2; exit 1; }
 
-# Compile the three programs -> BP/_CMD.* objects.
-cp "$SRC/BP/CMD.INIT" "$SRC/BP/CMD.ADD" "$SRC/BP/CMD.RUN" "$ACCT/BP/"
-( cd "$ACCT" && printf 'BASIC BP CMD.INIT CMD.ADD CMD.RUN\nQUIT\n' | udt )
-for o in _CMD.INIT _CMD.ADD _CMD.RUN; do
-  [ -f "$ACCT/BP/$o" ] || { echo "build-udt: object $o missing (compile failed)" >&2; exit 1; }
+# Compile EVERY program in BP/ -> BP/_CMD.* objects.  Derived from the source
+# directory, never a hardcoded list: a hardcoded one silently drops a newly added
+# program from the udt artifact (CMD.FLAG was missing from 1.1.0 this way, so
+# `GIT` — which dispatches through it — failed with "Cannot find CMD.FLAG").
+# One BASIC per program: a bulk `BASIC BP <many>` can segfault udt.
+PROGS="$(cd "$SRC/BP" && ls | tr '\n' ' ')"
+echo "build-udt: compiling $PROGS"
+for p in $PROGS; do
+  cp "$SRC/BP/$p" "$ACCT/BP/"
+  ( cd "$ACCT" && printf 'BASIC BP %s\nQUIT\n' "$p" | udt )
+  [ -f "$ACCT/BP/_$p" ] || { echo "build-udt: object _$p missing (compile failed)" >&2; exit 1; }
 done
 
 # Stage the objects-only package (contents at the root): prebuilt _objects +
 # manifest, no source records.
 mkdir -p "$STAGE/BP"
-cp "$ACCT/BP/_CMD.INIT" "$ACCT/BP/_CMD.ADD" "$ACCT/BP/_CMD.RUN" "$STAGE/BP/"
+for p in $PROGS; do cp "$ACCT/BP/_$p" "$STAGE/BP/"; done
 cp "$SRC/PKG" "$SRC/mvpkg.json" "$SRC/LICENSE" "$SRC/README.md" "$STAGE/"
 echo "build-udt: staged the objects-only package"
