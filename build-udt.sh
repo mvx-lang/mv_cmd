@@ -28,12 +28,22 @@ echo "build-udt: creating a UniData account with newacct"
   | sed 's/^/  newacct| /' || true
 [ -e "$ACCT/VOC" ] || { echo "build-udt: newacct did not create a VOC (see transcript above)" >&2; exit 1; }
 
+# Provision the shared platform header this account compiles against
+# (`$INCLUDE MVPKG.INC PLATFORM.H` — the $DEFINE MV / $DEFINE UDT vendor defines).
+# `MVPKG init` lays it down; mvpkg is installed in the udt-builder image.
+echo "build-udt: MVPKG init (provisions MVPKG.INC/PLATFORM.H)"
+( cd "$ACCT" && printf 'MVPKG init -y\nQUIT\n' | udt 2>&1 ) | sed 's/^/  mvpkg| /' | grep -iE "initialised|include:|error" || true
+[ -f "$ACCT/MVPKG.INC/PLATFORM.H" ] || {
+  echo "build-udt: MVPKG init did not provision MVPKG.INC/PLATFORM.H — is mvpkg installed in the builder image?" >&2; exit 1; }
+
 # Compile EVERY program in BP/ -> BP/_CMD.* objects.  Derived from the source
 # directory, never a hardcoded list: a hardcoded one silently drops a newly added
 # program from the udt artifact (CMD.FLAG was missing from 1.1.0 this way, so
 # `GIT` — which dispatches through it — failed with "Cannot find CMD.FLAG").
 # One BASIC per program: a bulk `BASIC BP <many>` can segfault udt.
-PROGS="$(cd "$SRC/BP" && ls | tr '\n' ' ')"
+# Files only: BP/ can also hold a generated include DIRECTORY (BP/MVPKG.INC,
+# written by mkpkg beside the sources), which is not a program to compile.
+PROGS="$(cd "$SRC/BP" && for f in *; do [ -f "$f" ] && printf '%s ' "$f"; done)"
 echo "build-udt: compiling $PROGS"
 for p in $PROGS; do
   cp "$SRC/BP/$p" "$ACCT/BP/"

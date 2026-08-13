@@ -17,6 +17,10 @@
 * (which it reads with GETOPT.VAL / GETOPT.HAS / GETOPT.ARG).  `--help`/`-h` on a
 * subcommand, or `help <sub>`, prints that subcommand's usage.  The sentence is
 * fetched through GETOPT.SENTENCE, the one portable seam (SENTENCE()/@SENTENCE).
+* Platform compile-time defines (MV / UDT / UV / D3): the mvpkg-shared header,
+* provisioned per account by MVPKG init.  Included unconditionally — MVX is a
+* builtin compiler define, but the vendor symbols only exist via this header.
+$INCLUDE MVPKG.INC PLATFORM.H
 SUBROUTINE CMD.RUN
 COMMON /CMDPKG/ CNAME, CDESC, CSUBS, CDESCS, CHANDLERS, CFLAGS
 CALL GETOPT.SENTENCE(S)

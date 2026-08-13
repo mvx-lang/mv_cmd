@@ -15,6 +15,10 @@
 * option on a subcommand.  CMD.RUN parses the sentence against the declared flags
 * (via the getopt package) before dispatching, and the handler reads them back
 * with GETOPT.VAL / GETOPT.HAS / GETOPT.ARG.  takes-value 0 is a boolean flag.
+* Platform compile-time defines (MV / UDT / UV / D3): the mvpkg-shared header,
+* provisioned per account by MVPKG init.  Included unconditionally — MVX is a
+* builtin compiler define, but the vendor symbols only exist via this header.
+$INCLUDE MVPKG.INC PLATFORM.H
 SUBROUTINE CMD.FLAG(SUB, SHORT, LONG, TAKESVAL, DFLT, HELP)
 COMMON /CMDPKG/ CNAME, CDESC, CSUBS, CDESCS, CHANDLERS, CFLAGS
 CFLAGS<-1> = OCONV(SUB, "MCU") : @VM : SHORT : @VM : LONG : @VM : TAKESVAL : @VM : DFLT : @VM : HELP
