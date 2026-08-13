@@ -1,6 +1,6 @@
 {
   "name": "mvx-lang/cmd",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "command framework (CMD.INIT / CMD.ADD / CMD.RUN)",
   "license": "GPL-2.0-only",
   "systems": [
