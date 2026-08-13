@@ -12,6 +12,10 @@
 *  * @version 1.0
 *  */
 * CMD.INIT(name, description) — begin defining a command.
+* Platform compile-time defines (MV / UDT / UV / D3): the mvpkg-shared header,
+* provisioned per account by MVPKG init.  Included unconditionally — MVX is a
+* builtin compiler define, but the vendor symbols only exist via this header.
+$INCLUDE MVPKG.INC PLATFORM.H
 SUBROUTINE CMD.INIT(NAME, DESC)
 COMMON /CMDPKG/ CNAME, CDESC, CSUBS, CDESCS, CHANDLERS, CFLAGS
 CNAME = NAME

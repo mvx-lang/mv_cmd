@@ -11,3 +11,7 @@ BP.O.DICT/
 *.o
 *.dylib
 *.so
+
+# PLATFORM.H is a per-platform build artifact (mkpkg.sh / MVPKG init write it),
+# generated both at the package root and beside the BP sources.
+**/PLATFORM.H
