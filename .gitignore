@@ -15,3 +15,7 @@ BP.O.DICT/
 # PLATFORM.H is a per-platform build artifact (mkpkg.sh / MVPKG init write it),
 # generated both at the package root and beside the BP sources.
 **/PLATFORM.H
+
+# The VOC's own dictionary is the platform's, not the account's - every
+# account is born with it, and a clone gets its own (mv_git#95).
+VOC.DICT/
