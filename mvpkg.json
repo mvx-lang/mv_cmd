@@ -1,19 +1,21 @@
 {
-  "name": "mvx-lang/cmd",
-  "version": "1.3.0",
-  "description": "command framework (CMD.INIT / CMD.ADD / CMD.RUN)",
-  "license": "GPL-2.0-only",
-  "systems": [
-    "mvx",
-    "udt"
-  ],
-  "dependencies": [
-    "mvx-lang/getopt"
-  ],
-  "devDependencies": [
-    "mvx-lang/mvpkg"
-  ],
-  "provides": [
-    "cmd"
-  ]
+ "name": "mvx-lang/cmd",
+ "version": "1.3.0",
+ "description": "command framework (CMD.INIT / CMD.ADD / CMD.RUN)",
+ "license": "GPL-2.0-only",
+ "systems": [
+  "mvx",
+  "udt",
+  "uv",
+  "jbase"
+ ],
+ "dependencies": [
+  "mvx-lang/getopt"
+ ],
+ "devDependencies": [
+  "mvx-lang/mvpkg"
+ ],
+ "provides": [
+  "cmd"
+ ]
 }
