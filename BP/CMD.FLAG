@@ -18,8 +18,8 @@
 * Platform compile-time defines (MV / UDT / UV / D3): the mvpkg-shared header,
 * provisioned per account by MVPKG init.  Included unconditionally — MVX is a
 * builtin compiler define, but the vendor symbols only exist via this header.
-SUBROUTINE CMD.FLAG(SUB, SHORT, LONG, TAKESVAL, DFLT, HELP)
+SUBROUTINE CMD.FLAG(CSUB, SHORT, LONG, TAKESVAL, DFLT, HELP)
 $INCLUDE MVPKG.INC PLATFORM.H
 COMMON /CMDPKG/ CNAME, CDESC, CSUBS, CDESCS, CHANDLERS, CFLAGS
-CFLAGS<-1> = OCONV(SUB, "MCU") : @VM : SHORT : @VM : LONG : @VM : TAKESVAL : @VM : DFLT : @VM : HELP
+CFLAGS<-1> = OCONV(CSUB, "MCU") : @VM : SHORT : @VM : LONG : @VM : TAKESVAL : @VM : DFLT : @VM : HELP
 RETURN
