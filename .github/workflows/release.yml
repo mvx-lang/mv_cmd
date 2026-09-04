@@ -3,9 +3,9 @@
 # indexes the assets via its release webhook (it hosts nothing).  Each job
 # publishes to the same release; asset names mirror the registry's artifact key
 # (<name>-<ver>-<suffix>, base = package name '/'->'_') so the webhook maps them:
-#   source                        -> mvx-lang_cmd-<ver>-source.tar.gz
-#   mvx binary  (linux/x86_64,le) -> mvx-lang_cmd-<ver>-mvx-linux-x86_64-le.tar.gz
-#   udt binary  (linux/x86_64,le) -> mvx-lang_cmd-<ver>-udt-linux-x86_64-le.tar.gz
+#   source                        -> cmd-<ver>-source.tar.gz
+#   mvx binary  (linux/x86_64,le) -> cmd-<ver>-mvx-linux-x86_64-le.tar.gz
+#   udt binary  (linux/x86_64,le) -> cmd-<ver>-udt-linux-x86_64-le.tar.gz
 #
 # cmd is pure BASIC.  The source package is the BP/ programs (compiled on
 # install); the mvx binary is the compiled subroutine library (LIB/libcmd.so)
@@ -44,6 +44,7 @@ jobs:
       - uses: mvx-lang/mvx/.github/actions/publish-source@main
         with:
           package: mvx-lang/cmd
+          artifact: cmd
           title: cmd
           body: "The cmd command framework (CMD.INIT / CMD.ADD / CMD.RUN). Source + prebuilt mvx binary; indexed by the package registry."
 
@@ -79,7 +80,7 @@ jobs:
           case "$(printf '\1\2' | od -An -tx2 | tr -d ' \n')" in
             0201*) ENDIAN=le ;; 0102*) ENDIAN=be ;; *) ENDIAN=le ;;
           esac
-          BASE="mvx-lang_cmd-$VER-mvx-$OS-$ARCH-$ENDIAN"
+          BASE="cmd-$VER-mvx-$OS-$ARCH-$ENDIAN"
 
           # Compile BP/ into LIB/libcmd.so against the installed mvx-basic.
           MVXBASIC="$(command -v mvx-basic)" sh .mvx-src/scripts/mkpkg.sh .
@@ -119,6 +120,7 @@ jobs:
       - uses: mvx-lang/mv-package-registry/.github/actions/udt-build@main
         with:
           package: mvx-lang/cmd
+          artifact: cmd
 
   # ---- what kind of release is this? ----------------------------------------
   # LAST, because it is correcting the publish steps rather than joining them.
