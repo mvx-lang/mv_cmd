@@ -31,6 +31,18 @@ mkdir -p "$ACCT/BP"
 for f in "$SRC"/BP/*; do
    if [ -f "$f" ]; then cp "$f" "$ACCT/BP/"; fi
 done
+# EVERY STAGED SOURCE GETS A TRAILING NEWLINE.  UniVerse's compiler rejects a
+# source whose last line is unterminated -- "End of File unexpected, Was
+# expecting: ';', End of Line" -- and the repo's items do not all have one, so
+# this is not cosmetic: without it the uv artifact cannot be compiled on the
+# target at all, and the package installs as a directory of sources that never
+# become programs.  Appending only when it is missing keeps re-staging
+# idempotent.
+for f in "$ACCT"/BP/*; do
+   [ -f "$f" ] || continue
+   [ -n "$(tail -c 1 "$f")" ] && printf '\n' >> "$f"
+done
+
 if [ -d "$SRC/BP.DICT" ]; then
    mkdir -p "$ACCT/BP.DICT"; cp "$SRC"/BP.DICT/* "$ACCT/BP.DICT/"
 fi
