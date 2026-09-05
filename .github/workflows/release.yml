@@ -134,8 +134,55 @@ jobs:
   #
   # Both directions are set explicitly, for the same reason: leaving the stable
   # case alone means it keeps whatever that race happened to leave behind.
+  # ---- uv and jbase: the SOURCE package, staged on a hosted runner -----------
+  # Source, where the udt artifact above ships prebuilt objects -- and that is the
+  # platforms differing, not a shortcut.  UniData's object for a program is a FILE
+  # beside it, so build-udt.sh can lift the _CMD.* out and MVPKG-udt catalogs them
+  # with no compiler.  jBASE's is not: cataloging there aggregates programs into a
+  # per-account shared library ($HOME/lib/lib0.so), so there is no per-program
+  # object to lift and nothing portable to stage.
+  #
+  # uv and jbase take the source and MVPKG catalogs it on the target; both ship a
+  # BASIC compiler as standard, so the only cost is a compile at install.  Hence
+  # `any-any-le` and a hosted runner -- nothing here is compiled, so there is
+  # nothing to lock to an os or arch, and no licensed container is needed.
+  #
+  # AFTER source and ONE AT A TIME: each upload creates the release if it is not
+  # there yet, so jobs starting together race and all but one lose with
+  # `already_exists` on tag_name (curl-cmd#7).
+  account:
+    needs: [source]
+    strategy:
+      max-parallel: 1
+      matrix:
+        system: [uv, jbase]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Stage the ${{ matrix.system }} account
+        id: pkg
+        shell: bash
+        run: |
+          set -euo pipefail
+          VER="${GITHUB_REF_NAME}"
+          BASE="cmd-$VER-${{ matrix.system }}-any-any-le"
+          rm -rf dist && mkdir -p dist
+          sh build-pkg.sh dist
+          tar czf "$BASE.tar.gz" -C dist cmd
+          sha256sum "$BASE.tar.gz" > "$BASE.tar.gz.sha256"
+          echo "tarball=$BASE.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "checksum=$BASE.tar.gz.sha256" >> "$GITHUB_OUTPUT"
+      - name: Publish the ${{ matrix.system }} account asset
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            ${{ steps.pkg.outputs.tarball }}
+            ${{ steps.pkg.outputs.checksum }}
+          fail_on_unmatched_files: true
+
   mark:
-    needs: [source, mvx-binary, udt-binary]
+    needs: [source, mvx-binary, udt-binary, account]
     runs-on: ubuntu-latest
     steps:
       - name: Say what this release is
