@@ -49,7 +49,16 @@ jobs:
           body: "The cmd command framework (CMD.INIT / CMD.ADD / CMD.RUN). Source + prebuilt mvx binary; indexed by the package registry."
 
   # ---- mvx binary: compile the subroutine library against a published mvx ----
+  # needs: [source] — NOT for ordering, but so this job never CREATES the release.
+  # Every publish step creates it as a side effect of uploading, so jobs starting
+  # together each try to create it: one wins and the losers fail finalize with
+  # `Validation Failed: {"code":"already_exists","field":"tag_name"}`, leaving a
+  # stray draft release behind for the tag.  That is where the duplicate draft
+  # beside every tag comes from, and on mv_package#66 it went further — the job
+  # it killed was `source`, which other jobs need, so the release shipped with
+  # half its artifacts.  `source` alone creates it; the rest upload into it.
   mvx-binary:
+    needs: [source]
     # The setup-mvx tarball is built on ubuntu-latest; run on a matching glibc.
     runs-on: ubuntu-24.04
     steps:
@@ -114,6 +123,7 @@ jobs:
   # the runner is offline this job is skipped/failed without affecting the
   # source and mvx assets, which the registry already indexes on their own.
   udt-binary:
+    needs: [source]
     runs-on: [self-hosted, linux, udt]
     steps:
       - uses: actions/checkout@v5
