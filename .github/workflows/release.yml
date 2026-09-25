@@ -84,7 +84,9 @@ jobs:
           repository: mvx-lang/mvx
           ref: v${{ steps.mvx.outputs.version }}
           path: .mvx-src
-          sparse-checkout: scripts
+          sparse-checkout: |
+            scripts
+            .github/actions/publish-source
           sparse-checkout-cone-mode: false
 
       - name: Build the mvx binary package
@@ -99,6 +101,19 @@ jobs:
             0201*) ENDIAN=le ;; 0102*) ENDIAN=be ;; *) ENDIAN=le ;;
           esac
           BASE="cmd-$VER-mvx-$OS-$ARCH-$ENDIAN"
+
+          # THE MANIFESTS HAVE TO SAY WHAT THIS RELEASE IS (#27).  PKG line 2 and
+          # mvpkg.json carry whatever was last committed, and only the artifact
+          # FILENAME took the version from the tag -- so 1.4.1 went out
+          # declaring 1.3.0 inside, in every asset.  publish-source stamps the
+          # source tarball; this is the same script, on the same tree, before it
+          # is packed.
+          if [ "${GITHUB_REF_TYPE:-}" = tag ]; then
+            python3 .mvx-src/.github/actions/publish-source/stamp-manifests.py . "$VER"
+            test "$(sed -n 2p PKG)" = "$VER"
+          else
+            echo "not a tag (${GITHUB_REF_TYPE:-unset} $VER): manifests left as committed"
+          fi
 
           # Compile BP/ into LIB/libcmd.so against the installed mvx-basic.
           MVXBASIC="$(command -v mvx-basic)" sh .mvx-src/scripts/mkpkg.sh .
@@ -178,6 +193,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+
+      # JUST THE STAMPER.  This job compiles nothing, so it needs no toolchain
+      # -- stamp-manifests.py is standalone Python.  Taken from `main`, which is
+      # mvx's RELEASED line: it moves when a release merges and not before,
+      # which is the right coupling for a script with no compiler dependency
+      # (and the opposite of the default branch, which is what broke #28).
+      - name: Check out the manifest stamper
+        uses: actions/checkout@v5
+        with:
+          repository: mvx-lang/mvx
+          ref: main
+          path: .mvx-src
+          sparse-checkout: .github/actions/publish-source
+          sparse-checkout-cone-mode: false
+
       - name: Stage the ${{ matrix.system }} account
         id: pkg
         shell: bash
@@ -187,6 +217,14 @@ jobs:
           BASE="cmd-$VER-${{ matrix.system }}-any-any-le"
           rm -rf dist && mkdir -p dist
           sh build-pkg.sh dist
+          # STAMPED AFTER STAGING, on the staged copy rather than the tree: the
+          # artifact is what has to be honest, and leaving the checkout alone
+          # keeps this job independent of the order the matrix runs in.
+          if [ "${GITHUB_REF_TYPE:-}" = tag ]; then
+            python3 .mvx-src/.github/actions/publish-source/stamp-manifests.py \
+              dist/cmd "$VER"
+            test "$(sed -n 2p dist/cmd/PKG)" = "$VER"
+          fi
           tar czf "$BASE.tar.gz" -C dist cmd
           sha256sum "$BASE.tar.gz" > "$BASE.tar.gz.sha256"
           echo "tarball=$BASE.tar.gz" >> "$GITHUB_OUTPUT"
