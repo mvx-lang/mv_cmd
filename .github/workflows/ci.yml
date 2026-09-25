@@ -1,0 +1,106 @@
+# MVX — a native compiler and runtime for Pick/MultiValue BASIC.
+# Copyright (C) 2026 Gordon Heydon.  GPL-2.0-only.
+#
+# ci — build cmd the way a RELEASE builds it, and assert what a release should,
+# on every pull request and every push to main/develop.
+#
+# WHY THIS EXISTS (#30).  There was no CI here: the only thing that ever built
+# this package was the release workflow, which runs on a tag — so the first time
+# a change was exercised was the moment it shipped.  mv_git#263 is what that
+# costs: its release path broke when mvx#248 changed the packaging tooling, and
+# nothing noticed for twelve days, because the workflow that would have caught
+# it only ran on events nobody had generated.  The fix landed here as #28 and
+# merged with "no checks reported" — the same blind spot, one layer up.
+#
+# Deliberately the release build minus the publish: the same mkpkg.sh, the same
+# build-pkg.sh.  A release that would fail should fail here first, on the PR
+# that caused it.
+name: ci
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'develop' }}
+
+jobs:
+  mvx:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up the mvx toolchain
+        id: mvx
+        uses: mvx-lang/mvx/.github/actions/setup-mvx@main
+        with:
+          version: latest
+
+      # PINNED TO WHAT setup-mvx RESOLVED (#28): the scripts and the compiler
+      # have to be one mvx, or a tooling change that has not been released yet
+      # meets a compiler that has never heard of it.
+      - name: Check out the mvx package tooling (scripts/mkpkg.sh)
+        uses: actions/checkout@v5
+        with:
+          repository: mvx-lang/mvx
+          ref: v${{ steps.mvx.outputs.version }}
+          path: .mvx-src
+          sparse-checkout: scripts
+          sparse-checkout-cone-mode: false
+
+      - name: Build the mvx package
+        run: |
+          set -euo pipefail
+          MVXBASIC="$(command -v mvx-basic)" sh .mvx-src/scripts/mkpkg.sh .
+          test -f LIB/libcmd.so
+
+      # THE RELEASE ONLY CHECKS THE FILE EXISTS.  mkpkg.sh succeeds and writes a
+      # library even when it bundled nothing into it, so "it built" is not the
+      # question — getopt shipped exactly that shape (mvx-lang/getopt#19).  Ask
+      # for each record by name, so a miss says WHICH is gone.
+      - name: Every subroutine is exported
+        run: |
+          set -euo pipefail
+          syms="$(nm -D --defined-only LIB/libcmd.so)"
+          missing=
+          for r in BP/CMD.*; do
+            n="${r#BP/}"
+            printf '%s\n' "$syms" | grep -q "mvx_sub_$n\$" || missing="$missing $n"
+          done
+          if [ -n "$missing" ]; then
+            echo "LIB/libcmd.so does not export:$missing" >&2
+            exit 1
+          fi
+          echo "exports all $(ls BP/CMD.* | wc -l) subroutines"
+
+      # uv and jbase get a STAGED tree rather than a compiled one, so staging is
+      # what breaks — and it has, in this repo: CMD.FLAG went missing from the
+      # 1.1.0 udt artifact and GIT failed with "Cannot find CMD.FLAG".  Assert
+      # every source is staged, and that each ends in a newline, which
+      # UniVerse's compiler requires and refuses a file without.
+      - name: The staged account is complete, and UniVerse-safe
+        run: |
+          set -euo pipefail
+          rm -rf dist && mkdir -p dist
+          sh build-pkg.sh dist
+          test -d dist/cmd/BP
+          test -f dist/cmd/PKG
+          test -f dist/cmd/mvpkg.json
+          for f in BP/CMD.*; do
+            test -f "dist/cmd/$f" || { echo "not staged: $f" >&2; exit 1; }
+          done
+          bad=
+          for f in dist/cmd/BP/*; do
+            [ -n "$(tail -c 1 "$f")" ] && bad="$bad $(basename "$f")"
+          done
+          if [ -n "$bad" ]; then
+            echo "staged without a trailing newline (uv will refuse):$bad" >&2
+            exit 1
+          fi
+          echo "staged $(ls dist/cmd/BP | wc -l) sources, all newline-terminated"
