@@ -57,10 +57,24 @@ jobs:
   # beside every tag comes from, and on mv_package#66 it went further — the job
   # it killed was `source`, which other jobs need, so the release shipped with
   # half its artifacts.  `source` alone creates it; the rest upload into it.
+  # BOTH ARCHITECTURES (mvx-lang/mv_git#257).  mvx publishes linux-amd64 and
+  # linux-arm64 toolchains and resolves a package by platform triple, so a
+  # package with no arm64 build is simply absent on an arm64 install -- the
+  # installer warns and carries on.
+  #
+  # Nothing is cross-compiled: each leg builds natively, setup-mvx picks the
+  # toolchain by `uname -m', and the asset name takes the same token the mvx
+  # installer asks for (aarch64).  fail-fast off so one architecture failing
+  # does not withdraw the other's asset.  needs: [source] unchanged, so both
+  # legs upload into the release source created rather than creating it twice.
   mvx-binary:
     needs: [source]
     # The setup-mvx tarball is built on ubuntu-latest; run on a matching glibc.
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Check out cmd
         uses: actions/checkout@v5
