@@ -31,8 +31,22 @@ concurrency:
   cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'develop' }}
 
 jobs:
+  # BOTH ARCHITECTURES mvx PUBLISHES A TOOLCHAIN FOR (mvx-lang/mv_git#257).
+  # The release below publishes an arm64 asset, and an asset no ci run has
+  # built is a promise nothing checked.  Nothing is cross-compiled:
+  # ubuntu-24.04-arm builds natively and setup-mvx picks the toolchain by
+  # `uname -m'.
   mvx:
-    runs-on: ubuntu-24.04
+    name: ${{ matrix.job }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false      # one arch failing must not hide the other
+      matrix:
+        include:
+          - job: mvx
+            runner: ubuntu-24.04
+          - job: mvx-arm64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v5
 
